@@ -17,7 +17,9 @@ const componentDef = {
       this.$store.dispatch('navigateTo', {url: url, backwards: false}).then((response) => {
         // self.asyncTemplate = response;
       })
-    }
+        // window.scrollTo(0, 0);
+        // document.body.scrollTop = document.documentElement.scrollTop = 0;
+    }.then(){window.scrollTo(0, 0);}
   }
 }
 

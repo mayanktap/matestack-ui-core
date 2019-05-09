@@ -113,5 +113,120 @@ describe "Transition Component", type: :feature, js: true do
     expect(first_content_on_page_1).not_to eq(refreshed_content_on_page_1)
   end
 
+  it "Example 2 - Perform transition from one page to another without page reload if related to app. Check if it scrolls to top" do
+
+    class Apps::ExampleApp < App::Cell::App
+
+      def response
+        components {
+          heading size: 1, text: "My Example App Layout"
+          nav do
+            transition path: :page1_two_path do
+              button text: "Page 1"
+            end
+          end
+          main do
+            page_content
+            footer id: 'footer' do
+              plain 'I am the footer'
+            end
+          end
+        }
+      end
+
+    end
+
+    module Pages::ExampleApp
+
+    end
+
+    class Pages::ExampleApp::ExamplePage < Page::Cell::Page
+
+      def response
+        components {
+          div id: "my-div-on-page-1" do
+            heading size: 2, id: 'my-page-1-heading', text: "This is Page 1"
+            plain "#{DateTime.now.strftime('%Q')}"
+          end
+          120.times do
+            plain 'I create space'
+            br
+          end
+          transition path: :page2_two_path do
+            button text: "Page 2"
+          end
+        }
+      end
+
+    end
+
+    class Pages::ExampleApp::SecondExamplePage < Page::Cell::Page
+
+      def response
+        components {
+          div id: "my-div-on-page-2" do
+            heading size: 2, id: 'my-page-2-heading', text: "This is Page 2"
+            plain "#{DateTime.now.strftime('%Q')}"
+          end
+          120.times do
+            plain 'I create space'
+            br
+          end
+          transition path: :page1_two_path do
+            button text: "Back to Page 1"
+          end
+        }
+      end
+
+    end
+
+    class ExampleAppPagesController < ExampleController
+      include Matestack::Ui::Core::ApplicationHelper
+
+      def page1
+        responder_for(Pages::ExampleApp::ExamplePage)
+      end
+
+      def page2
+        responder_for(Pages::ExampleApp::SecondExamplePage)
+      end
+
+    end
+
+    Rails.application.routes.append do
+      get 'my_example_app/page1', to: 'example_app_pages#page1', as: 'page1_two'
+      get 'my_example_app/page2', to: 'example_app_pages#page2', as: 'page2_two'
+    end
+    Rails.application.reload_routes!
+
+    visit "/my_example_app/page1"
+
+    expect(page).to have_content("My Example App Layout")
+    expect(page).to have_button("Page 1")
+    expect(page).to have_button("Page 2")
+
+    expect(page).to have_content("This is Page 1")
+    expect(page).not_to have_content("This is Page 2")
+
+    page.execute_script "window.scrollTo(0,10000)"
+
+    click_button("Page 2")
+
+    sleep 500
+
+    expect(page).to have_content("My Example App Layout")
+    expect(page).not_to have_content("This is Page 1")
+    expect(page).to have_content("This is Page 2")
+    expect(page).to have_selector('#my-page-2-heading', visible: true)
+
+    click_button("Back to Page 1")
+
+    expect(page).to have_content("My Example App Layout")
+    expect(page).to have_content("This is Page 1")
+    expect(page).not_to have_content("This is Page 2")
+
+    expect(page).to have_selector('#my-page-1-heading', visible: true)
+
+  end
 
 end
